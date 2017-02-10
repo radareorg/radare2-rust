@@ -1,0 +1,12 @@
+[package]
+name = "similarity"
+version = "0.1.0"
+authors = ["defragger <rlaemmert@gmail.com>"]
+
+[lib]
+name = "similarity"
+crate-type = ["cdylib"]
+
+[dependencies]
+libc = "0.2.18"
+rustc-serialize = "*"
