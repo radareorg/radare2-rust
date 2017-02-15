@@ -1,10 +1,13 @@
+SOEXT=$(shell r2 -H LIBEXT)
+RHOMEDIR=$(shell r2 -H RHOMEDIR)
+
 all:
 	cargo build --release
-	mkdir -p ~/.config/radare2/plugins
-	cp -f target/release/libsimilarity.so ~/.config/radare2/plugins/
+	mkdir -p $(RHOMEDIR)
+	cp -f target/release/libsimilarity.$(SOEXT) $(RHOMEDIR)/plugins
 
 uninstall:
-	rm -f ~/.config/radare2/plugins/libsimilarity.so
+	rm -f $(RHOMEDIR)/plugins/libsimilarity.$(SOEXT)
 
 clean:
 	cargo clean

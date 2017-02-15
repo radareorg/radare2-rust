@@ -1,8 +1,15 @@
+use libc::*;
 use std::fmt;
 use std::u64;
+use std::ffi::CString;
+use std::ffi::CStr;
 use std::collections::HashMap;
 
 use bb::BasicBlock;
+#[link(name="r_cons")]
+extern {
+    pub fn r_cons_strcat(cstr: *const i8) -> c_void;
+}
 
 pub struct Function {
     pub entry: u64,
@@ -50,9 +57,31 @@ impl Function {
     }
 
     pub fn dump(&self) {
-        println!("Function 0x{:x} bbs: {}", self.entry, self.block_count());
+        // println!("Function 0x{:x} bbs: {}", self.entry, self.block_count());
+        unsafe {
+            let s : String = format!("af+ 0x{:x} fcn.{:x}\n", self.entry, self.entry);
+            r_cons_strcat(CString::new(s).unwrap().as_ptr());
+        }
+        // println!("af+ 0x{:x} fcn.{:x}", self.entry, self.entry); //bbs: {}", self.entry, self.block_count());
         for (_, bb) in &self.blocks {
-            println!("\t{}", bb);
+            let s: String;
+            // println!("\t{}", bb);
+            if bb.jump != u64::MAX {
+                if bb.fail != u64::MAX {
+                    s = format!("afb+ 0x{:x} 0x{:x} 0x{:x} 0x{:x} 0x{:x}\n",
+                        self.entry, bb.start, bb.end - bb.start,
+                        bb.jump, bb.fail);
+                } else {
+                    s = format!("afb+ 0x{:x} 0x{:x} 0x{:x} 0x{:x}\n",
+                        self.entry, bb.start, bb.end - bb.start,
+                        bb.jump);
+                }
+            } else {
+                 s = format!("afb+ 0x{:x} 0x{:x} 0x{:x}\n", self.entry, bb.start, bb.end - bb.start);
+	    }
+            unsafe {
+                r_cons_strcat(CString::new(s).unwrap().as_ptr());
+            }
         }
     }
 }

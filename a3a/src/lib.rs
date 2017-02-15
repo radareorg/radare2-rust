@@ -256,6 +256,7 @@ pub struct RLibStruct {
 }
 
 // internal radare functions to be defined here
+#[link(name="r_cons")]
 #[link(name="r_anal")]
 #[link(name="r_core")]
 extern {
@@ -265,6 +266,7 @@ extern {
     pub fn r_core_is_valid_offset (core: *mut c_void, offset: u64) -> c_int;
     pub fn r_core_cmdf (core: *mut c_void, format: *const c_char, ...) -> c_int;
     pub fn r_core_cmd (core: *mut c_void, cstr: *const c_char, log: c_int) -> c_int;
+    pub fn r_cons_print(cstr: *const c_char) -> c_void;
 }
 
 fn r2_cmd(core: *mut c_void, cmd: &str) -> &str {

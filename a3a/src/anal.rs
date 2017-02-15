@@ -1,4 +1,6 @@
 use std::u64;
+use std::io::Write;
+use std::io::stderr;
 use std::collections::HashMap;
 
 use bb::BlockType;
@@ -13,6 +15,15 @@ pub struct Anal {
     pub calls: Vec<u64>,
     pub jumps: HashMap<u64, u64>,
     pub functions: Vec<Function>,
+}
+
+macro_rules! stderr {
+    ($($arg:tt)*) => (
+        match writeln!(&mut ::std::io::stderr(), $($arg)* ) {
+            Ok(_) => {},
+            Err(x) => panic!("Unable to write to stderr (file handle closed?): {}", x),
+        }
+    )
 }
 
 impl Anal {
@@ -158,9 +169,9 @@ impl Anal {
     }
 
     pub fn print_info(&mut self) {
-        println!("{: <10} direct calls", self.calls.len());
-        println!("{: <10} basic blocks", self.blocks.len());
-        println!("{: <10} possible functions", self.functions.len());
+        stderr!("{: <10} direct calls", self.calls.len());
+        stderr!("{: <10} basic blocks", self.blocks.len());
+        stderr!("{: <10} possible functions", self.functions.len());
 //        for fcn in &self.functions {
 //            let metric = Metric::new(fcn);
 //            println!("Metric: {}", metric);
