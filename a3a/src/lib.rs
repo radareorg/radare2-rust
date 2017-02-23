@@ -13,10 +13,9 @@ use rustc_serialize::json;
 mod bb;
 mod anal;
 mod fcn;
-mod metric;
 use bb::BlockType;
 
-const MY_NAME : *const c_char = b"awesome name\0" as *const [u8] as *const c_char;
+const MY_NAME : *const c_char = b"anal-rs\0" as *const [u8] as *const c_char;
 const R2_VERSION: &'static [u8] = b"1.3.0-git\0";
 const MY_DESC : &'static [u8] = b"Analysis plugin\0";
 const MY_LICENSE : &'static [u8] = b"MIT\0";
@@ -272,10 +271,8 @@ extern {
 fn r2_cmd(core: *mut c_void, cmd: &str) -> &str {
     unsafe {
         let s = CString::new(cmd).unwrap();
-        //let result: &CStr = CStr::from_ptr(r_core_cmd_str(core, s.as_ptr()));
         let ptr = r_core_cmd_str(core, s.as_ptr());
         let result: &CStr = CStr::from_ptr(ptr);
-        //free(ptr as *mut c_void);
         match result.to_str() {
             Ok(val) => val,
             Err(_) => "",
@@ -376,18 +373,10 @@ fn analyze_binary (core: *mut c_void) -> c_int {
         fcn.dump();
     }
     anal.print_info();
-//    unsafe {
-//        for fcn in &anal.functions {
-//                if fcn.size > 0 {
-//                    let format = CString::new(format!("a2f @ {}", fcn.entry)).unwrap();
-//                    r_core_cmd(core, format.as_ptr(), 0);
-//                }
-//        }
-//    }
     return 1;
 }
 
-extern "C" fn _similarity_call (user: *mut c_void, input: *const c_char) -> c_int {
+extern "C" fn _anal_call (user: *mut c_void, input: *const c_char) -> c_int {
     let c_str: &CStr = unsafe { CStr::from_ptr(input) };
     let bytes = c_str.to_bytes();
     let input = str::from_utf8(bytes).unwrap();
@@ -398,11 +387,11 @@ extern "C" fn _similarity_call (user: *mut c_void, input: *const c_char) -> c_in
     return 0;
 }
 
-const R_SIMILARITY_PLUGIN: RCorePlugin = RCorePlugin {
+const R_ANAL_PLUGIN: RCorePlugin = RCorePlugin {
     name : MY_NAME,
     desc : MY_DESC as *const [u8] as *const c_char,
     license : MY_LICENSE as *const [u8] as *const c_char,
-    call: Some(_similarity_call),
+    call: Some(_anal_call),
     init: None,
     deinit: None
 };
@@ -411,7 +400,7 @@ const R_SIMILARITY_PLUGIN: RCorePlugin = RCorePlugin {
 #[allow(non_upper_case_globals)]
 pub static mut radare_plugin: RLibStruct = RLibStruct {
     _type : RLibType::RLibTypeCore ,
-    data : ((&R_SIMILARITY_PLUGIN) as *const RCorePlugin) as *const c_void,
+    data : ((&R_ANAL_PLUGIN) as *const RCorePlugin) as *const c_void,
     version : R2_VERSION
 };
 

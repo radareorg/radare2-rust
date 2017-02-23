@@ -1,10 +1,10 @@
 [package]
-name = "similarity"
+name = "analrs"
 version = "0.1.0"
 authors = ["defragger <rlaemmert@gmail.com>"]
 
 [lib]
-name = "similarity"
+name = "analrs"
 crate-type = ["cdylib"]
 
 [dependencies]

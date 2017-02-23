@@ -1,13 +1,11 @@
 use std::u64;
 use std::io::Write;
-use std::io::stderr;
 use std::collections::HashMap;
 
 use bb::BlockType;
 use bb::BasicBlock;
 
 use fcn::Function;
-use metric::Metric;
 
 pub struct Anal {
     pub blocks: Vec<BasicBlock>,
@@ -172,10 +170,6 @@ impl Anal {
         stderr!("{: <10} direct calls", self.calls.len());
         stderr!("{: <10} basic blocks", self.blocks.len());
         stderr!("{: <10} possible functions", self.functions.len());
-//        for fcn in &self.functions {
-//            let metric = Metric::new(fcn);
-//            println!("Metric: {}", metric);
-//        }
     }
 }
 

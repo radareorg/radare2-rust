@@ -1,5 +1,5 @@
 [root]
-name = "similarity"
+name = "analrs"
 version = "0.1.0"
 dependencies = [
  "libc 0.2.19 (registry+https://github.com/rust-lang/crates.io-index)",
