@@ -49,8 +49,7 @@ impl Anal {
         let mut result: Vec<BasicBlock> = Vec::new();
 
         let mut trap_block = false;
-        while !self.blocks.is_empty() {
-            let mut block = self.blocks.pop().unwrap();
+        while let Some(mut block) = self.blocks.pop() {
             if block.jump != u64::MAX {
                 self.jumps.entry(block.jump).or_insert(block.start);
             }

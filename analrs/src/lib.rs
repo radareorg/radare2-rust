@@ -19,6 +19,8 @@ const MY_NAME : *const c_char = b"anal-rs\0" as *const [u8] as *const c_char;
 const R2_VERSION: &'static [u8] = b"1.3.0-git\0";
 const MY_DESC : &'static [u8] = b"Analysis plugin\0";
 const MY_LICENSE : &'static [u8] = b"MIT\0";
+const MY_VERSION : &'static [u8] = b"0.1.0\0";
+const MY_AUTHOR : &'static [u8] = b"defragger <rlaemmert@gmail.com>\0";
 
 // order matters because of libr/util/lib.c
 #[repr(C)]
@@ -113,6 +115,8 @@ pub struct RCorePlugin {
     name: *const c_char,
     desc: *const c_char,
     license: *const c_char,
+    author: *const c_char,
+    version: *const c_char,
     pub call: Option<extern "C" fn(*mut c_void, *const c_char) -> c_int>,
     pub init: Option<extern "C" fn(*mut c_void, *const c_char) -> bool>,
     pub deinit: Option<extern "C" fn(*mut c_void, *const c_char) -> bool>,
@@ -380,7 +384,7 @@ extern "C" fn _anal_call (user: *mut c_void, input: *const c_char) -> c_int {
     let c_str: &CStr = unsafe { CStr::from_ptr(input) };
     let bytes = c_str.to_bytes();
     let input = str::from_utf8(bytes).unwrap();
-    if input.starts_with("a3a") {
+    if input.starts_with("aaR") {
         analyze_binary (user);
         return 1;
     }
@@ -391,6 +395,8 @@ const R_ANAL_PLUGIN: RCorePlugin = RCorePlugin {
     name : MY_NAME,
     desc : MY_DESC as *const [u8] as *const c_char,
     license : MY_LICENSE as *const [u8] as *const c_char,
+    author : MY_AUTHOR as *const [u8] as *const c_char,
+    version : MY_VERSION as *const [u8] as * const c_char,
     call: Some(_anal_call),
     init: None,
     deinit: None
