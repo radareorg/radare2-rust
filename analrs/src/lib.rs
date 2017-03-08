@@ -350,7 +350,7 @@ fn analyze_binary (core: *mut c_void) -> c_int {
                             }
                             R_ANAL_OP_TYPE_TRAP => {
                                 if b_start < start + cur {
-                                    anal.add(b_start, start + cur , std::u64::MAX, std::u64::MAX, BlockType::Trap, block_score);
+                                    anal.add(b_start, start + cur , std::u64::MAX, std::u64::MAX, BlockType::Normal, block_score);
                                 }
                                 b_start = start + cur + (*op).size as u64;
                                 block_score = 0;

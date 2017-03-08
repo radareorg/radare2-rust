@@ -11,6 +11,19 @@ pub enum BlockType {
     Call,
 }
 
+impl fmt::Display for BlockType {
+    fn fmt(&self, f: &mut  fmt::Formatter) -> fmt::Result {
+        let printable = match *self {
+            BlockType::Trap => "TRAP",
+            BlockType::Normal => "NORMAL",
+            BlockType::Jump => "JUMP",
+            BlockType::Cjump => "CJUMP",
+            BlockType::Call => "CALL",
+        };
+        write!(f, "{}", printable)
+    }
+}
+
 #[derive(Copy, Clone)]
 pub struct BasicBlock {
     pub start: u64,
@@ -44,8 +57,8 @@ impl Eq for BasicBlock {
 
 impl fmt::Display for BasicBlock {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "s:0x{:016x}, e:0x{:016x} j:0x{:016x} f:0x{:016x} score:{}"
-               , self.start, self.end, self.jump, self.fail, self.score)
+        write!(f, "s:0x{:016x}, e:0x{:016x} j:0x{:016x} f:0x{:016x} score:{} type:{}"
+               , self.start, self.end, self.jump, self.fail, self.score, self.block_type)
     }
 }
 

@@ -48,7 +48,6 @@ impl Anal {
         self.blocks.sort();
         let mut result: Vec<BasicBlock> = Vec::new();
 
-        let mut trap_block = false;
         while let Some(mut block) = self.blocks.pop() {
             if block.jump != u64::MAX {
                 self.jumps.entry(block.jump).or_insert(block.start);
@@ -62,25 +61,6 @@ impl Anal {
                 // check if the next block is the same as this one (multiple inserts)
                 if (*last).start == block.start && block.end == u64::MAX {
                     continue;
-                }
-
-                match block.block_type {
-                    BlockType::Trap => {
-                        //merge trap blocks into one block
-                        if trap_block == false {
-                            trap_block = true;
-                            result.push(block);
-                            continue;
-                        } else {
-                            if let Some(last_from_result) = result.last_mut() {
-                                (*last_from_result).end += block.end - block.start;
-                            } 
-                            continue;
-                        }
-                    }
-                    _ => {
-                        trap_block = false;
-                    }
                 }
 
                 if block.start == (*last).start && (*last).end == u64::MAX {
@@ -111,6 +91,7 @@ impl Anal {
             match block.block_type {
                 BlockType::Call => {
                     self.calls.push(block.start);
+                    result.push(block);
                 }
                 BlockType::Normal => {
                     result.push(block);
