@@ -1,11 +1,15 @@
+use libc::*;
 use std::u64;
 use std::io::Write;
 use std::collections::HashMap;
+use rustc_serialize::json;
 
 use bb::BlockType;
 use bb::BasicBlock;
 
 use fcn::Function;
+
+use radare2::*;
 
 pub struct Anal {
     pub blocks: Vec<BasicBlock>,
@@ -13,6 +17,7 @@ pub struct Anal {
     pub calls: Vec<u64>,
     pub jumps: HashMap<u64, u64>,
     pub functions: Vec<Function>,
+    pub core: *mut c_void,
 }
 
 macro_rules! stderr {
@@ -24,14 +29,25 @@ macro_rules! stderr {
     )
 }
 
+#[derive(RustcDecodable)]
+pub struct Section {
+    flags: String,
+    name: String,
+    paddr: u64,
+    size: u64,
+    vaddr: u64,
+    vsize: u64,
+}
+
 impl Anal {
-    pub fn new() -> Anal {
+    pub fn new(core: *mut c_void) -> Anal {
         Anal { 
             blocks: Vec::new(),
             block_map: HashMap::new(),
             calls: Vec::new(),
             jumps: HashMap::new(),
             functions: Vec::new(),
+            core: core,
         }
     }
 
@@ -44,7 +60,97 @@ impl Anal {
         self.blocks.push(block);
     }
 
-    pub fn finalize(&mut self) {
+    pub fn analyze(&mut self) {
+        r2_cmd(self.core, "e anal.afterjmp=false");
+        r2_cmd(self.core, "e anal.vars=false");
+        let section_json= r2_cmd(self.core, "iSj");
+        let sections: Vec<Section> = json::decode(section_json).unwrap();
+
+        let offset_inside = |x: u64| -> bool {
+            for section in &sections {
+                if x >= section.vaddr && x <= section.vaddr + section.size {
+                    return true;
+                }
+            }
+            false
+        };
+
+        for section in sections.iter().filter(| x | x.flags.contains("x")) {
+            let start: u64 = section.vaddr;
+            let size: u64 = section.size;
+
+            let mut cur: u64 = 0;
+            let mut b_start: u64 = start;
+            let mut block_score: i64 = 0;
+            while cur < size {
+                unsafe {
+                    let op: *mut RAnalOp;
+                    op = r_core_anal_op (self.core, start + cur);
+
+                    if op.is_null() {
+                        cur += 1;
+                        block_score -= 10;
+                        continue;
+                    } else {
+                        match (*op)._type {
+                            R_ANAL_OP_TYPE_NOP => {
+                            }
+                            R_ANAL_OP_TYPE_CALL => {
+                                self.add((*op).jump, u64::MAX, u64::MAX, u64::MAX, BlockType::Call, block_score);
+                                if offset_inside((*op).jump) {
+                                    //TODO add call ref axC
+                                }
+                                block_score = 0;
+                            }
+                            R_ANAL_OP_TYPE_RET => {
+                                self.add(b_start, start + cur + (*op).size as u64, u64::MAX, u64::MAX, BlockType::Normal, block_score);
+                                b_start = start + cur + (*op).size as u64;
+                                block_score = 0;
+                            }
+                            R_ANAL_OP_TYPE_CJMP => {
+                                self.add(b_start, start + cur + (*op).size as u64, (*op).jump, (*op).size as u64 + cur + start, BlockType::Normal, block_score);
+                                b_start = start + cur + (*op).size as u64;
+                                block_score = 0;
+                            }
+
+                            R_ANAL_OP_TYPE_JMP | R_ANAL_OP_TYPE_UJMP | R_ANAL_OP_TYPE_RJMP => {
+                                self.add(b_start, start + cur + (*op).size as u64, (*op).jump, u64::MAX, BlockType::Normal, block_score);
+                                b_start = start + cur + (*op).size as u64;
+                                block_score = 0;
+                            }
+                            R_ANAL_OP_TYPE_UCALL => {
+                                // unknown call (i.e. register)
+                                // more investigation to do
+                            }
+                            R_ANAL_OP_TYPE_TRAP => {
+                                if b_start < start + cur {
+                                    self.add(b_start, start + cur , u64::MAX, u64::MAX, BlockType::Normal, block_score);
+                                }
+                                b_start = start + cur + (*op).size as u64;
+                                block_score = 0;
+                            }
+                            R_ANAL_OP_TYPE_UNK => {
+                                block_score -= 10;
+                            }
+                            R_ANAL_OP_TYPE_ILL => {
+                                block_score -= 10;
+                            }
+
+                            _ => {
+                            }
+                        }
+
+                        if (*op).size == 0 {
+                            cur += 1;
+                        } else {
+                            cur += (*op).size as u64;
+                        }
+                        r_anal_op_free (op);
+                    }
+                }
+            }
+        }
+
         self.blocks.sort();
         let mut result: Vec<BasicBlock> = Vec::new();
 
@@ -100,9 +206,11 @@ impl Anal {
                 _ => {}
             }
         }
+
         for block in &result {
             self.block_map.insert(block.start, *block);
         }
+
         self.blocks.append(&mut result);
         self.blocks.sort();
         for block in &self.blocks {

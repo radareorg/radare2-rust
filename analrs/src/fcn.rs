@@ -1,19 +1,16 @@
-use libc::*;
 use std::fmt;
 use std::u64;
 use std::ffi::CString;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
+
+use radare2::*;
 
 use bb::BasicBlock;
-#[link(name="r_cons")]
-extern {
-    pub fn r_cons_strcat(cstr: *const i8) -> c_void;
-}
 
 pub struct Function {
     pub entry: u64,
     pub size: u64,
-    pub blocks: HashMap<u64, BasicBlock>,
+    pub blocks: BTreeMap<u64, BasicBlock>,
     pub score: i64,
 }
 
@@ -25,7 +22,7 @@ impl fmt::Display for Function {
 
 impl Function {
     pub fn new(addr: u64) -> Function {
-        Function { entry: addr, size: 0, blocks: HashMap::new(), score: 0 }
+        Function { entry: addr, size: 0, blocks: BTreeMap::new(), score: 0 }
     }
 
     pub fn add_block(&mut self, block: BasicBlock) {
@@ -50,10 +47,13 @@ impl Function {
         self.score
     }
 
-    pub fn dump(&self) {
+    pub fn dump_r2_commands(&self) {
         unsafe {
             let s : String = format!("af+ 0x{:x} fcn.{:x}\n", self.entry, self.entry);
             r_cons_strcat(CString::new(s).unwrap().as_ptr());
+            //XXX adding flags should be implicit through af+
+            let s2 : String = format!("f fcn.{:x} {} @ {}\n", self.entry, self.size, self.entry);
+            r_cons_strcat(CString::new(s2).unwrap().as_ptr());
         }
         for (_, bb) in &self.blocks {
             let s: String;
