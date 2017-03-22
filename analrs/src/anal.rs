@@ -3,6 +3,7 @@ use std::u64;
 use std::io::Write;
 use std::collections::HashMap;
 use rustc_serialize::json;
+use std::ffi::CString;
 
 use bb::BlockType;
 use bb::BasicBlock;
@@ -18,6 +19,8 @@ pub struct Anal {
     pub jumps: HashMap<u64, u64>,
     pub functions: Vec<Function>,
     pub core: *mut c_void,
+    call_ref: HashMap<u64, u64>,
+    data_ref: HashMap<u64, u64>,
 }
 
 macro_rules! stderr {
@@ -44,6 +47,8 @@ impl Anal {
         Anal { 
             blocks: Vec::new(),
             block_map: HashMap::new(),
+            call_ref: HashMap::new(),
+            data_ref: HashMap::new(),
             calls: Vec::new(),
             jumps: HashMap::new(),
             functions: Vec::new(),
@@ -61,8 +66,8 @@ impl Anal {
     }
 
     pub fn analyze(&mut self) {
-        r2_cmd(self.core, "e anal.afterjmp=false");
-        r2_cmd(self.core, "e anal.vars=false");
+        //r2_cmd(self.core, "e anal.afterjmp=false");
+        //r2_cmd(self.core, "e anal.vars=false");
         let section_json= r2_cmd(self.core, "iSj");
         let sections: Vec<Section> = json::decode(section_json).unwrap();
 
@@ -98,7 +103,7 @@ impl Anal {
                             R_ANAL_OP_TYPE_CALL => {
                                 self.add((*op).jump, u64::MAX, u64::MAX, u64::MAX, BlockType::Call, block_score);
                                 if offset_inside((*op).jump) {
-                                    //TODO add call ref axC
+                                    self.call_ref.entry(start + cur).or_insert((*op).jump);
                                 }
                                 block_score = 0;
                             }
@@ -137,6 +142,11 @@ impl Anal {
                             }
 
                             _ => {
+                                if (*op).ptr != u64::MAX as i64 {
+                                    if offset_inside((*op).ptr as u64) {
+                                        self.data_ref.entry(start + cur).or_insert((*op).ptr as u64);
+                                    }
+                                }
                             }
                         }
 
@@ -244,6 +254,20 @@ impl Anal {
                 }
             }
         }
+
+        for (from, to) in &self.call_ref {
+            unsafe {
+                let s: String = format!("axC {} {}\n", to, from);
+                r_cons_strcat(CString::new(s).unwrap().as_ptr());
+            }
+        }
+
+        for (from, to) in &self.data_ref {
+            unsafe {
+                let s: String = format!("axd {} {}\n", to, from);
+                r_cons_strcat(CString::new(s).unwrap().as_ptr());
+            }
+        }
     }
 
     pub fn block_count(&mut self) -> usize {
@@ -258,6 +282,8 @@ impl Anal {
         stderr!("{: <10} direct calls", self.calls.len());
         stderr!("{: <10} basic blocks", self.blocks.len());
         stderr!("{: <10} possible functions", self.functions.len());
+        stderr!("{: <10} call refs", self.call_ref.len());
+        stderr!("{: <10} data refs", self.data_ref.len());
     }
 }
 
