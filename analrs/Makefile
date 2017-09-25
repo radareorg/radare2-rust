@@ -6,8 +6,8 @@ all:
 	$(MAKE) install
 
 install:
-	mkdir -p $(USER_PLUGINS)/plugins
-	cp -f target/release/libanalrs.$(SOEXT) $(USER_PLUGINS)/plugins
+	mkdir -p $(USER_PLUGINS)/
+	cp -f target/release/libanalrs.$(SOEXT) $(USER_PLUGINS)/
 
 uninstall:
 	rm -f $(RHOMEDIR)/plugins/libanalrs.$(SOEXT)

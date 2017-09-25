@@ -15,7 +15,7 @@ mod radare2;
 use radare2::*;
 
 const MY_NAME : *const c_char = b"anal-rs\0" as *const [u8] as *const c_char;
-const R2_VERSION: &'static [u8] = b"1.4.0-git\0";
+const R2_VERSION: &'static [u8] = b"1.7.0-git\0";
 const MY_DESC : &'static [u8] = b"Analysis plugin\0";
 const MY_LICENSE : &'static [u8] = b"MIT\0";
 const MY_VERSION : &'static [u8] = b"0.1.0\0";
